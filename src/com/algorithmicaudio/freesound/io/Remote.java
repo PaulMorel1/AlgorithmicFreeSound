@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
@@ -165,7 +166,7 @@ public class Remote
 	 * @param	data	A HashMap containing the key/value pairs to be used in the request.
 	 * @return			A String that is formated like "a=1&b=2"
 	 */
-	private static String makeParameters(HashMap<String, String> data)
+	public static String makeParameters(HashMap<String, String> data)
 	{
 		if( data.isEmpty() ) return "";
 		
@@ -174,7 +175,7 @@ public class Remote
 		for(String key : data.keySet())
 		{
 			if( params.length() != 0 ) joiner = "&";
-			params += joiner + key + "=" + data.get(key);
+			params += joiner + key + "=" + URLEncoder.encode(data.get(key));
 		}
 		return params;
 	}
