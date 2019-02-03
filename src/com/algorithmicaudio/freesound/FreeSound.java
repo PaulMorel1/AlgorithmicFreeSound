@@ -132,11 +132,14 @@ public class FreeSound
 		}
 	}
 
-	/*
+	/**
 	 * Third step in the OAuth handshake dance. See https://freesound.org/docs/api/authentication.html#oauth-authentication
 	 * 
 	 * Once the client app has an authorization code from step one, we can retrieve a user access token from FreeSound. That's what
 	 * this method does.
+	 * 
+	 * @param	authorizationCode	The code copied from step one.
+	 * @return						true on success. false on failure.
 	 */
 	private boolean authorizeStepThree(String authorizationCode)
 	{
@@ -178,40 +181,44 @@ public class FreeSound
 		}
 		return false;
 	}
-
-	private String getQuery(String location, String token)
+	
+	private String getQuery(String location)
 	{
-		return "https://www.freesound.org/apiv2/" + location + "&token=" + token + "&format=json";
+		return "https://www.freesound.org/apiv2/" + location;
 	}
+
+//	private String getQuery(String location, String token)
+//	{
+//		
+//		return "https://www.freesound.org/apiv2/" + location + "&token=" + token + "&format=json";
+//	}
 
 	private String getDownloadQuery(String soundId)
 	{
 		return "https://www.freesound.org/apiv2/sounds/" + soundId + "/download/";
 	}
 
-
 	public SearchResponse search(String SearchString)
 	{
-		return search(SearchString, "", true);
+		return search(SearchString, 0, true);
 	}
 
-	public SearchResponse search(String SearchString, String MaximumDurationInSeconds, boolean Canonical)
+	public SearchResponse search(String SearchString, int MaximumDurationInSeconds, boolean Canonical)
 	{
 		try
 		{
-			String query = getQuery("search/text/?query=" + SearchString + "&fields=" + String.join(",", searchFields), clientSecret);
+			// make the hash of parameters for the HTTP post request
+			HashMap<String, String> params = new HashMap<String, String>();
+			params.put("query", SearchString);
+			params.put("fields", String.join(",", searchFields));
+			params.put("format", "json");
+			params.put("token", clientSecret);
+			
+			String filter = buildFilter(Canonical, MaximumDurationInSeconds);
+			if(filter.length() > 0)
+				params.put("filter", filter);
 
-			// add the filter for only canonical wave files
-			if (Canonical)
-				query += "&filter=type:wav%20bitdepth:16%20samplerate:44100%20channels:1";
-			// possibly add the duration limit
-			if (MaximumDurationInSeconds.length() > 0)
-			{
-				if (!Canonical)
-					query += "&filter=duration:[0.1%20TO%20" + MaximumDurationInSeconds + "]";
-				else
-					query += "%20duration:[0.1%20TO%20" + MaximumDurationInSeconds + "]";
-			}
+			String query = getQuery("search/text/?" + Remote.makeParameters(params));
 
 			// query the FreeSound API
 			String jsonString = Remote.httpGet(query);
@@ -232,14 +239,25 @@ public class FreeSound
 	}
 
 	// TODO: implement content based searching
-	public SearchResponse SearchByContent(String Query, String Target, String Filter)
+	public SearchResponse SearchByContent(String SearchString, String Target, String DescriptorsFilter, boolean Canonical, int MaximumDurationInSeconds)
 	{
 		try
 		{
-			// get the json response from the freesound server
-			String query = getQuery("search/combined/?query=" + Query + "&target=" + Target + "&descriptors_filter=" + Filter + "&fields=" + String.join(",", searchFields), clientSecret);
-			String jsonString = Remote.httpGet(query);
+			// make the hash of parameters for the HTTP post request
+			HashMap<String, String> params = new HashMap<String, String>();
+			params.put("query", SearchString);
+			params.put("fields", String.join(",", searchFields));
+			params.put("format", "json");
+			params.put("token", clientSecret);
+			params.put("descriptors_filters", DescriptorsFilter);
+			
+			String filter = buildFilter(Canonical, MaximumDurationInSeconds);
+			if(filter.length() > 0)
+				params.put("filter", filter);
 
+			String query = getQuery("search/text/?" + Remote.makeParameters(params));
+			
+			String jsonString = Remote.httpGet(query);
 			if (jsonString.length() > 0)
 			{
 				// gson
@@ -265,43 +283,31 @@ public class FreeSound
 	 */
 	public SearchResponse searchForSimilar(String SoundId)
 	{
-		return searchForSimilar(SoundId, "", 15, true);
+		return searchForSimilar(SoundId, 0, 15, true);
 	}
 
-	public SearchResponse searchForSimilar(String SoundId, String MaximumDurationInSeconds)
-	{
-		return searchForSimilar(SoundId, MaximumDurationInSeconds, 15, true);
-	}
-
-	public SearchResponse searchForSimilar(String SoundId, String MaximumDurationInSeconds, int MaximumResults)
-	{
-		return searchForSimilar(SoundId, MaximumDurationInSeconds, MaximumResults, true);
-	}
-
-	public SearchResponse searchForSimilar(String SoundId, String MaximumDurationInSeconds, int MaximumResults, boolean Canonical)
+	public SearchResponse searchForSimilar(String SoundId, int MaximumDurationInSeconds, int MaximumResults, boolean Canonical)
 	{
 		try
 		{
-			// This is the similar sounds endpoint, which doesn't support filters.
-			// String query = getQuery("sounds/" + SoundId + "/similar/?fields=" + Fields, AppAccessToken);
+			
+			// make the hash of parameters for the HTTP post request
+			HashMap<String, String> params = new HashMap<String, String>();
+			params.put("target", SoundId);
+			params.put("fields", String.join(",", searchFields));
+			params.put("format", "json");
+			params.put("token", clientSecret);
+			
+			String filter = buildFilter(Canonical, MaximumDurationInSeconds);
+			if(filter.length() > 0)
+				params.put("filter", filter);
 
-			// The combined search DOES support filters.
-			String query = getQuery("search/combined/?target=" + SoundId + "&fields=" + String.join(",", searchFields), clientSecret);
-
-			// possibly tack on the max results
-			if (MaximumResults > 0 && MaximumResults != 15)
-				query += "&max_results=" + MaximumResults;
-			// add the filter for only canonical wave files
-			if (Canonical)
-				query += "&filter=type:wav%20bitdepth:16%20samplerate:44100%20channels:1";
-			// possibly add the duration limit
-			if (MaximumDurationInSeconds.length() > 0)
-			{
-				if (!Canonical)
-					query += "&filter=duration:[0.1%20TO%20" + MaximumDurationInSeconds + "]";
-				else
-					query += "%20duration:[0.1%20TO%20" + MaximumDurationInSeconds + "]";
-			}
+			/*
+			 * The similar sounds endpoint is actually at sounds/<SOUND_ID>/similar/?etc
+			 * but it doesn't support filters, while the combined search endpoint
+			 * DOES support filters. So we use that.
+			 */
+			String query = getQuery("search/combined/?" + Remote.makeParameters(params));
 
 			String jsonString = Remote.httpGet(query);
 			if (jsonString.length() > 0)
@@ -434,4 +440,20 @@ public class FreeSound
 		return "";
 	}
 
+	/**
+	 * Build the filter parameter for a search request.
+	 * 
+	 * @param	OnlyCanonicalWaveFiles		If this is true, then the search will only return monophonic wav files with a sample rate of 44.1kHz and a bit depth of 16 bits. These files are very easy to work with, so this option prevents having to understand many different audio file types.
+	 * @param	MaximumDurationInSeconds	The maximum duration of returned audio files.
+	 * @return								The filter as a parameterized String.
+	 */
+	private String buildFilter(boolean OnlyCanonicalWaveFiles, int MaximumDurationInSeconds)
+	{
+		String filter = "";
+		if(OnlyCanonicalWaveFiles)
+			filter += "type:wav bitdepth:16 samplerate:44100 channels:1 ";
+		if(MaximumDurationInSeconds  > 0)
+			filter += "duration:[0.1 TO " + MaximumDurationInSeconds + "]";
+		return filter;
+	}
 }
