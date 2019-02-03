@@ -182,18 +182,16 @@ public class FreeSound
 		return false;
 	}
 
-
 	/**
 	 * General search method for searching by text.
 	 * 
-	 * @param	SearchString	The text that you want to search for
+	 * @param	searchString	The text that you want to search for
 	 * @return					The search response from FreeSound
 	 */
-	public SearchResponse search(String SearchString)
+	public SearchResponse search(String searchString)
 	{
-		return searchByText(SearchString, "", 0, true);
-	}
-	
+		return searchByText(searchString, "", 0, true);
+	}	
 	
 	/**
 	 * This search method returns only sounds with the given tag
@@ -209,12 +207,12 @@ public class FreeSound
 	/**
 	 * Search for a sound by text.
 	 * 
-	 * @param	SearchString				the text you want to search for
-	 * @param 	MaximumDurationInSeconds	the maximum duration of returned sounds. It may be desirable to exclude long ambient sounds.
-	 * @param 	Canonical					Return only canonical wav files?
+	 * @param	searchString				the text you want to search for
+	 * @param 	maximumDurationInSeconds	the maximum duration of returned sounds. It may be desirable to exclude long ambient sounds.
+	 * @param 	canonical					Return only canonical wav files?
 	 * @return								The SearchResponse from FreeSound
 	 */
-	public SearchResponse searchByText(String SearchString, String tag, int MaximumDurationInSeconds, boolean Canonical)
+	public SearchResponse searchByText(String searchString, String tag, int maximumDurationInSeconds, boolean canonical)
 	{
 		try
 		{
@@ -225,10 +223,10 @@ public class FreeSound
 			params.put("token", clientSecret);
 			
 			// if there is a text search, then include - this method is also used to search by tag, so the text search may not be used
-			if( SearchString.length() > 0 )
-				params.put("query", SearchString);
+			if( searchString.length() > 0 )
+				params.put("query", searchString);
 			
-			String filter = buildFilter(tag, Canonical, MaximumDurationInSeconds);
+			String filter = buildFilter(tag, canonical, maximumDurationInSeconds);
 			if(filter.length() > 0)
 				params.put("filter", filter);
 
@@ -246,30 +244,48 @@ public class FreeSound
 		}
 		catch(Exception e)
 		{
-			System.out.println("Error while searching freesound for " + SearchString + "\n" + e.getMessage());
+			System.out.println("Error while searching freesound for " + searchString + "\n" + e.getMessage());
 			e.printStackTrace();
 		}
 		return null;
 	}
 
-	// TODO: implement content based searching
-	public SearchResponse SearchByContent(String SearchString, String Target, String DescriptorsFilter, boolean Canonical, int MaximumDurationInSeconds)
+	/**
+	 * This uses content search to find sounds in a specific key.
+	 * 
+	 * @param 	key							for example, C
+	 * @param 	scale						major or minor
+	 * @return								SearchResponse
+	 */
+	public SearchResponse searchByKey(String key, String scale)
+	{
+		return searchByContent("(tonal.key_key:\"" + key + "\" AND tonal.key_scale:\"" + scale + "\")", true, 0);
+	}
+	
+	/**
+	 * Search based on numeric descriptions of the sounds. See https://freesound.org/docs/api/resources_apiv2.html#content-search
+	 * 
+	 * @param 	descriptorsFilter			The descriptors that describe the target sound
+	 * @param 	canonical					Return only canonical wav files?
+	 * @param 	maximumDurationInSeconds	The maximum duration for returned sound files.
+	 * @return								SearchResponse
+	 */
+	public SearchResponse searchByContent(String descriptorsFilter, boolean canonical, int maximumDurationInSeconds)
 	{
 		try
 		{
 			// make the hash of parameters for the HTTP post request
 			HashMap<String, String> params = new HashMap<String, String>();
-			params.put("query", SearchString);
 			params.put("fields", String.join(",", searchFields));
 			params.put("format", "json");
 			params.put("token", clientSecret);
-			params.put("descriptors_filters", DescriptorsFilter);
+			params.put("descriptors_filter", descriptorsFilter);
 			
-			String filter = buildFilter("", Canonical, MaximumDurationInSeconds);
+			String filter = buildFilter("", canonical, maximumDurationInSeconds);
 			if(filter.length() > 0)
 				params.put("filter", filter);
 
-			String query = getSearchUrl("search/text/?" + Remote.makeParameters(params));
+			String query = getSearchUrl("search/content/?" + Remote.makeParameters(params));
 			
 			String jsonString = Remote.httpGet(query);
 			if (jsonString.length() > 0)
