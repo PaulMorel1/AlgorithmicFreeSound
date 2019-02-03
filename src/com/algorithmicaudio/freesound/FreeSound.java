@@ -34,8 +34,6 @@ public class FreeSound
 
 	public String[] searchFields = new String[] { "id", "name", "duration", "tags" }; // id, name, license, username, tags, analysis_stats, analysis_frames, duration
 
-	SearchResponse Results = null; // results container
-
 	/**
 	 * This simple constructor will only allow your app to search for files. It will not 
 	 * allow your app to download files unless the user has previously authorized it and 
@@ -72,6 +70,11 @@ public class FreeSound
 		authorize(newAuthorizationCode);
 	}
 	
+	/**
+	 * Entrance point to the OAuth authorization flow that allows this client to download files.
+	 * 
+	 * @param	newAuthorizationCode	The code copied from the FreeSound site during the first step in authorization.
+	 */
 	private void authorize(String newAuthorizationCode)
 	{
 		// first try to load the user access token from a local file
@@ -95,9 +98,9 @@ public class FreeSound
 	}
 
 	/**
-	 * Begin the OAuth dance that allows this client app to download files. This method will redirect a user to a login page on
-	 * freesound. They will login and allow access to their account. Then they will get an authorization code, which must be saved
-	 * for use when instantiating the FreeSound client library (this class).
+	 * The first step in the OAuth dance that allows this client app to download files. This method will redirect a user to a 
+	 * login page on freesound. They will login and allow access to their account. Then they will get an authorization code,
+	 * which must be saved for use when instantiating the FreeSound client library (this class).
 	 * 
 	 * This method is static so that it can be used before the FreeSound instance is constructed.
 	 * 
@@ -222,7 +225,7 @@ public class FreeSound
 	}
 
 	// TODO: implement content based searching
-	public void SearchByContent(String Query, String Target, String Filter)
+	public SearchResponse SearchByContent(String Query, String Target, String Filter)
 	{
 		try
 		{
@@ -234,13 +237,14 @@ public class FreeSound
 			{
 				// gson
 				Gson gson = new Gson();
-				Results = gson.fromJson(jsonString, SearchResponse.class);
+				return gson.fromJson(jsonString, SearchResponse.class);
 			}
 		}
 		catch(Exception e)
 		{
 			e.printStackTrace();
 		}
+		return null;
 	}
 
 	/*
@@ -297,15 +301,13 @@ public class FreeSound
 			{
 				// gson
 				Gson gson = new Gson();
-				Results = gson.fromJson(jsonString, SearchResponse.class);
-				return Results;
+				return gson.fromJson(jsonString, SearchResponse.class);
 			}
 		}
 		catch(Exception e)
 		{
 			System.out.println("Error while searching for sounds similar to " + SoundId + ".\n" + e.getMessage());
 			e.printStackTrace();
-			Results = null; // null out results
 		}
 		return null;
 	}
