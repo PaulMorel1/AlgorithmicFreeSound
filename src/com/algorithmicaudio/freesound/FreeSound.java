@@ -33,7 +33,21 @@ public class FreeSound
 	public String clientId = ""; // Your client id from https://freesound.org/apiv2/apply/
 	public String userAccessToken = ""; // the access token from OAuth Step 3. See https://freesound.org/docs/api/authentication.html#oauth-authentication
 
-	public String[] searchFields = new String[] { "id", "name", "duration", "tags" }; // id, name, license, username, tags, analysis_stats, analysis_frames, duration
+	/*
+	 * The fields returned on sounds from search endpoints
+	 * 
+	 * id, name, duration, tags, analysis, license, username
+	 */
+	public String[] searchFields = new String[] { "id", "name", "duration", "tags", "analysis" };
+	
+	/*
+	 * the analysis descriptors returned on sounds from search endpoints.
+	 * 
+	 * For the full list, see https://freesound.org/docs/api/analysis_docs.html#analysis-docs
+	 * 
+	 *  
+	 */
+	public String[] descriptorFields = new String[] { "lowlevel.average_loudness", "rhythm.bpm", "lowlevel.pitch_salience", "tonal.key_strength", "tonal.key_key", "tonal.key_scale" };
 
 	/**
 	 * This simple constructor will only allow your app to search for files. It will not 
@@ -219,6 +233,7 @@ public class FreeSound
 			// make the hash of parameters for the HTTP post request
 			HashMap<String, String> params = new HashMap<String, String>();
 			params.put("fields", String.join(",", searchFields));
+			params.put("descriptors", String.join(",", descriptorFields));
 			params.put("format", "json");
 			params.put("token", clientSecret);
 			
@@ -277,6 +292,7 @@ public class FreeSound
 			// make the hash of parameters for the HTTP post request
 			HashMap<String, String> params = new HashMap<String, String>();
 			params.put("fields", String.join(",", searchFields));
+			params.put("descriptors", String.join(",", descriptorFields));
 			params.put("format", "json");
 			params.put("token", clientSecret);
 			params.put("descriptors_filter", descriptorsFilter);
@@ -334,6 +350,7 @@ public class FreeSound
 			HashMap<String, String> params = new HashMap<String, String>();
 			params.put("target", SoundId);
 			params.put("fields", String.join(",", searchFields));
+			params.put("descriptors", String.join(",", descriptorFields));
 			params.put("format", "json");
 			params.put("token", clientSecret);
 			
@@ -363,83 +380,6 @@ public class FreeSound
 		}
 		return null;
 	}
-
-//	public Analysis GetAnalysis(String SoundId, String Filter)
-//	{
-//		return GetAnalysis(SoundId, Filter, false, false, false);
-//	}
-//	// and retrieving analysis data
-//	public Analysis GetAnalysis(String SoundId, String Filter, boolean GetFullRhythmAnalysis, boolean GetFullLowLevelAnalysis, boolean GetFullSfxAnalysis)
-//	{
-//		// make sure we have a valid sound id
-//		if( SoundId.length() == 0 )
-//		{
-//			System.out.println("--Unable to get analysis for sound id of length 0.");
-//			return null; // this might happen occasionally
-//		}
-//		
-//		// set up our query
-//		String query = getQuery("sounds/" + SoundId + "/analysis/" + Filter + "?a=", AppAccessToken);
-//		try
-//		{
-//			// get the json response from the freesound server
-//			String jsonString = httpGet(query);
-//			
-//			if( jsonString.length() > 0 )
-//			{
-//				// gson
-//				Gson gson = new Gson();
-//				Analysis AnalysisData = gson.fromJson(jsonString, Analysis.class);
-//				
-//				// Optionally get the full rhythm descriptor
-//				if( GetFullRhythmAnalysis )
-//				{
-//					query = getQuery("sounds/" + SoundId + "/analysis/rhythm?all=true", AppAccessToken);
-//					String RhythmJsonString = httpGet(query);
-//					if( RhythmJsonString.length() > 0 )
-//					{
-//						AnalysisData.rhythm = gson.fromJson(RhythmJsonString, Analysis_Rhythm.class);
-//					}
-//				}
-//				
-//				// Optionally get the full lowlevel descriptor
-//				if( GetFullLowLevelAnalysis )
-//				{
-//					query = getQuery("sounds/" + SoundId + "/analysis/lowlevel?all=true", AppAccessToken);
-//					String LowLevelJsonString = httpGet(query);
-//					if( LowLevelJsonString.length() > 0 )
-//					{
-//						AnalysisData.lowlevel = gson.fromJson(LowLevelJsonString, Analysis_LowLevel.class);
-//					}
-//					else
-//					{
-//						System.out.println("  Unable to get full LowLevel analysis...");
-//						return null;
-//					}
-//				}
-//				
-//				//  Optionally get the full Sfx descriptor
-//				if( GetFullSfxAnalysis )
-//				{
-//					query = getQuery("sounds/" + SoundId + "/analysis/sfx?all=true", AppAccessToken);
-//					String RhythmJsonString = httpGet(query);
-//					if( RhythmJsonString.length() > 0 )
-//					{
-//						AnalysisData.sfx = gson.fromJson(RhythmJsonString, Analysis_Sfx.class);
-//					}
-//				}
-//				
-//				return AnalysisData;
-//			}
-//			else return null;
-//		}
-//		catch(Exception e)
-//		{
-//			System.out.println("ERROR ON QUERY: " + query + "\n" + e.getMessage());
-//			e.printStackTrace();
-//		}
-//		return null; // if it gets here then there was an error
-//	}
 
 	/**
 	 * Download a sound from FreeSound.
