@@ -181,28 +181,27 @@ public class FreeSound
 		}
 		return false;
 	}
-	
-	private String getQuery(String location)
-	{
-		return "https://www.freesound.org/apiv2/" + location;
-	}
 
-//	private String getQuery(String location, String token)
-//	{
-//		
-//		return "https://www.freesound.org/apiv2/" + location + "&token=" + token + "&format=json";
-//	}
 
-	private String getDownloadQuery(String soundId)
-	{
-		return "https://www.freesound.org/apiv2/sounds/" + soundId + "/download/";
-	}
-
+	/**
+	 * Simplified search method. This will search for only canonical wav files.
+	 * 
+	 * @param	SearchString	The text that you want to search for
+	 * @return					The search response from FreeSound
+	 */
 	public SearchResponse search(String SearchString)
 	{
 		return search(SearchString, 0, true);
 	}
 
+	/**
+	 * Search for a sound by text.
+	 * 
+	 * @param	SearchString				the text you want to search for
+	 * @param 	MaximumDurationInSeconds	the maximum duration of returned sounds. It may be desirable to exclude long ambient sounds.
+	 * @param 	Canonical					Return only canonical wav files?
+	 * @return								The SearchResponse from FreeSound
+	 */
 	public SearchResponse search(String SearchString, int MaximumDurationInSeconds, boolean Canonical)
 	{
 		try
@@ -218,7 +217,7 @@ public class FreeSound
 			if(filter.length() > 0)
 				params.put("filter", filter);
 
-			String query = getQuery("search/text/?" + Remote.makeParameters(params));
+			String query = getSearchUrl("search/text/?" + Remote.makeParameters(params));
 
 			// query the FreeSound API
 			String jsonString = Remote.httpGet(query);
@@ -255,7 +254,7 @@ public class FreeSound
 			if(filter.length() > 0)
 				params.put("filter", filter);
 
-			String query = getQuery("search/text/?" + Remote.makeParameters(params));
+			String query = getSearchUrl("search/text/?" + Remote.makeParameters(params));
 			
 			String jsonString = Remote.httpGet(query);
 			if (jsonString.length() > 0)
@@ -272,7 +271,7 @@ public class FreeSound
 		return null;
 	}
 
-	/*
+	/**
 	 * Search for sounds that are similar to the sound with the id passed in as argument. This version of this method uses the
 	 * default arguments, with no maximum duration, maximum results set to 15, and only returning canonical wav files, which are
 	 * easier to work with than the more complex formats.
@@ -286,6 +285,15 @@ public class FreeSound
 		return searchForSimilar(SoundId, 0, 15, true);
 	}
 
+	/**
+	 * Search for sounds that are similar to a target sound.
+	 * 
+	 * @param 	SoundId						The id of the target sound
+	 * @param 	MaximumDurationInSeconds	The maximum duration of returned sounds
+	 * @param 	MaximumResults				The maximum number of results to return
+	 * @param 	Canonical					Return only canonical wav files?
+	 * @return								The SearchResponse from FreeSound
+	 */
 	public SearchResponse searchForSimilar(String SoundId, int MaximumDurationInSeconds, int MaximumResults, boolean Canonical)
 	{
 		try
@@ -307,7 +315,7 @@ public class FreeSound
 			 * but it doesn't support filters, while the combined search endpoint
 			 * DOES support filters. So we use that.
 			 */
-			String query = getQuery("search/combined/?" + Remote.makeParameters(params));
+			String query = getSearchUrl("search/combined/?" + Remote.makeParameters(params));
 
 			String jsonString = Remote.httpGet(query);
 			if (jsonString.length() > 0)
@@ -424,7 +432,7 @@ public class FreeSound
 			File f = new File(newFilename);
 			if (!f.exists())
 			{
-				String url = getDownloadQuery(Long.toString(soundId));
+				String url = getDownloadUrl(Long.toString(soundId));
 				if (!Remote.httpGetBinary(url, newFilename, userAccessToken))
 				{
 					System.out.println("Unable to download " + newFilename + ".");
@@ -440,6 +448,28 @@ public class FreeSound
 		return "";
 	}
 
+	/**
+	 * Get the URL for a request to a search endpoint.
+	 * 
+	 * @param	location	the path to the specific search resource
+	 * @return				the string with the full URL
+	 */
+	private String getSearchUrl(String location)
+	{
+		return "https://www.freesound.org/apiv2/" + location;
+	}
+
+	/**
+	 * Get the URL for a request to a download endpoint.
+	 * 
+	 * @param	soundId		the sound that you want to download
+	 * @return				the string with the full URL
+	 */
+	private String getDownloadUrl(String soundId)
+	{
+		return "https://www.freesound.org/apiv2/sounds/" + soundId + "/download/";
+	}
+	
 	/**
 	 * Build the filter parameter for a search request.
 	 * 
