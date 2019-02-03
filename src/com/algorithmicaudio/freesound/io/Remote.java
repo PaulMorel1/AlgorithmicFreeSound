@@ -10,6 +10,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 
 /**
  * 
@@ -108,15 +109,13 @@ public class Remote
 	}
 	
 	// See https://stackoverflow.com/questions/4205980/java-sending-http-parameters-via-post-method-easily
-	public static String httpPost(String urlStr, String formData)
+	public static String httpPost(String urlStr, HashMap<String, String> data)
 	{
-		String inputString = null;
-		int responseCode = 0;
-
 		try
 		{
 			URL url = new URL(urlStr);
 
+			String formData = Remote.makeParameters(data);
 			byte[] postData = formData.getBytes(StandardCharsets.UTF_8);
 			int postDataLength = postData.length;
 
@@ -135,15 +134,13 @@ public class Remote
 			DataOutputStream outputStream = new DataOutputStream(myHttpConnection.getOutputStream());
 			outputStream.write(postData);
 			outputStream.flush();
-			
-			// get the response-code from the response
-			responseCode = myHttpConnection.getResponseCode();
 
 			// open the contents of the URL as an inputStream and print to stdout
 			String output = "";
+			String input = "";
 			BufferedReader in = new BufferedReader(new InputStreamReader(myHttpConnection.getInputStream()));
-			while ((inputString = in.readLine()) != null) {
-				output += inputString;
+			while ((input = in.readLine()) != null) {
+				output += input;
 			}
 			in.close();
 
@@ -158,5 +155,27 @@ public class Remote
 			e.printStackTrace();
 		}
 		return "";
+	}
+	
+	/**
+	 * Return a parameter string that is formatted for use in an HTTP request.
+	 * 
+	 * See https://stackoverflow.com/questions/14551194/how-are-parameters-sent-in-an-http-post-request
+	 * 
+	 * @param	data	A HashMap containing the key/value pairs to be used in the request.
+	 * @return			A String that is formated like "a=1&b=2"
+	 */
+	private static String makeParameters(HashMap<String, String> data)
+	{
+		if( data.isEmpty() ) return "";
+		
+		String params = "";
+		String joiner = "";
+		for(String key : data.keySet())
+		{
+			if( params.length() != 0 ) joiner = "&";
+			params += joiner + key + "=" + data.get(key);
+		}
+		return params;
 	}
 }

@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 
 import javax.security.auth.login.CredentialNotFoundException;
 
@@ -157,7 +158,13 @@ public class FreeSound
 			return false;
 		}
 
-		String formData = "client_id=" + clientId + "&client_secret=" + clientSecret + "&grant_type=authorization_code&code=" + authorizationCode;
+		// make the hash of parameters for the HTTP post request
+		HashMap<String, String> formData = new HashMap<String, String>();
+		formData.put("client_id", clientId);
+		formData.put("client_secret", clientSecret);
+		formData.put("grant_type", "authorization_code");
+		formData.put("code", authorizationCode);
+
 		String authorizationJson = Remote.httpPost("https://freesound.org/apiv2/oauth2/access_token/", formData);
 
 		Gson gson = new Gson();
