@@ -184,14 +184,26 @@ public class FreeSound
 
 
 	/**
-	 * Simplified search method. This will search for only canonical wav files.
+	 * General search method for searching by text.
 	 * 
 	 * @param	SearchString	The text that you want to search for
 	 * @return					The search response from FreeSound
 	 */
 	public SearchResponse search(String SearchString)
 	{
-		return search(SearchString, 0, true);
+		return searchByText(SearchString, "", 0, true);
+	}
+	
+	
+	/**
+	 * This search method returns only sounds with the given tag
+	 * 
+	 * @param	tag		The tag to search for
+	 * @return			The search response from FreeSound
+	 */
+	public SearchResponse searchByTag(String tag)
+	{
+		return searchByText("", tag, 0, true);
 	}
 
 	/**
@@ -202,18 +214,21 @@ public class FreeSound
 	 * @param 	Canonical					Return only canonical wav files?
 	 * @return								The SearchResponse from FreeSound
 	 */
-	public SearchResponse search(String SearchString, int MaximumDurationInSeconds, boolean Canonical)
+	public SearchResponse searchByText(String SearchString, String tag, int MaximumDurationInSeconds, boolean Canonical)
 	{
 		try
 		{
 			// make the hash of parameters for the HTTP post request
 			HashMap<String, String> params = new HashMap<String, String>();
-			params.put("query", SearchString);
 			params.put("fields", String.join(",", searchFields));
 			params.put("format", "json");
 			params.put("token", clientSecret);
 			
-			String filter = buildFilter(Canonical, MaximumDurationInSeconds);
+			// if there is a text search, then include - this method is also used to search by tag, so the text search may not be used
+			if( SearchString.length() > 0 )
+				params.put("query", SearchString);
+			
+			String filter = buildFilter(tag, Canonical, MaximumDurationInSeconds);
 			if(filter.length() > 0)
 				params.put("filter", filter);
 
@@ -250,7 +265,7 @@ public class FreeSound
 			params.put("token", clientSecret);
 			params.put("descriptors_filters", DescriptorsFilter);
 			
-			String filter = buildFilter(Canonical, MaximumDurationInSeconds);
+			String filter = buildFilter("", Canonical, MaximumDurationInSeconds);
 			if(filter.length() > 0)
 				params.put("filter", filter);
 
@@ -306,7 +321,7 @@ public class FreeSound
 			params.put("format", "json");
 			params.put("token", clientSecret);
 			
-			String filter = buildFilter(Canonical, MaximumDurationInSeconds);
+			String filter = buildFilter("", Canonical, MaximumDurationInSeconds);
 			if(filter.length() > 0)
 				params.put("filter", filter);
 
@@ -477,13 +492,15 @@ public class FreeSound
 	 * @param	MaximumDurationInSeconds	The maximum duration of returned audio files.
 	 * @return								The filter as a parameterized String.
 	 */
-	private String buildFilter(boolean OnlyCanonicalWaveFiles, int MaximumDurationInSeconds)
+	private String buildFilter(String tag, boolean OnlyCanonicalWaveFiles, int MaximumDurationInSeconds)
 	{
 		String filter = "";
 		if(OnlyCanonicalWaveFiles)
 			filter += "type:wav bitdepth:16 samplerate:44100 channels:1 ";
 		if(MaximumDurationInSeconds  > 0)
-			filter += "duration:[0.1 TO " + MaximumDurationInSeconds + "]";
+			filter += "duration:[0.1 TO " + MaximumDurationInSeconds + "] ";
+		if(tag.length() > 0)
+			filter += "tag:" + tag;
 		return filter;
 	}
 }
